@@ -1,0 +1,65 @@
+<idea-plugin>
+    <id>com.sprigbyte.canopy</id>
+
+    <name>Canopy</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://sprigbyte.com">Sprigbyte</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
+    <description><![CDATA[
+        <h3>Canopy - JIRA to Azure DevOps Bridge</h3>
+        <p>A comprehensive plugin that streamlines the development workflow between JIRA issue tracking and Azure DevOps version control.</p>
+        
+        <h4>Features:</h4>
+        <ul>
+            <li><strong>List JIRA Tickets:</strong> View all tickets assigned to you with real-time status updates</li>
+            <li><strong>Create Git Branches:</strong> Automatically create properly named branches from ticket IDs</li>
+            <li><strong>Create Pull Requests:</strong> Generate Azure DevOps pull requests with rich ticket information</li>
+            <li><strong>Persistent Configuration:</strong> Securely store API keys and settings</li>
+            <li><strong>Integrated Workflow:</strong> Seamlessly switch between tickets, branches, and pull requests</li>
+        </ul>
+        
+        <h4>Requirements:</h4>
+        <ul>
+            <li>JIRA Cloud/Server access with API tokens</li>
+            <li>Azure DevOps access with Personal Access Tokens</li>
+            <li>Git repository in your project</li>
+        </ul>
+        
+        <p>Perfect for development teams using JIRA for issue tracking and Azure DevOps for code management.</p>
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.vcs</depends>
+    <depends>Git4Idea</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Application Services -->
+        <applicationService serviceImplementation="com.sprigbyte.canopy.config.CanopyConfigurationService"/>
+
+        <!-- Tool Window -->
+        <toolWindow
+                id="Canopy"
+                anchor="right"
+                icon="AllIcons.Toolwindows.Changes"
+                factoryClass="com.sprigbyte.canopy.ui.CanopyToolWindowFactory"/>
+    </extensions>
+    
+    <!-- Actions -->
+    <actions>
+        <group id="CanopyActions" text="Canopy" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action
+                    id="Canopy.OpenToolWindow"
+                    class="com.sprigbyte.canopy.actions.OpenCanopyToolWindowAction"
+                    text="Open Canopy Tool Window"
+                    description="Open the Canopy tool window to manage JIRA tickets and Azure DevOps integration"/>
+        </group>
+    </actions>
+</idea-plugin>
