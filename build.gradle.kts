@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sprigbyte"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -21,7 +21,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     
     intellijPlatform {
-        rider("2025.1") {
+        rider("2025.2.3") {
             useInstaller.set(false)
         }
         jetbrainsRuntime()
@@ -44,7 +44,7 @@ intellijPlatform {
         }
 
         changeNotes = """
-            Initial version
+            Support for 2025.2
         """.trimIndent()
     }
 }

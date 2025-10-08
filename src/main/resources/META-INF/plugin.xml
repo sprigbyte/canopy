@@ -45,10 +45,10 @@
 
         <!-- Tool Window -->
         <toolWindow
-                id="Canopy"
-                anchor="right"
-                icon="AllIcons.Toolwindows.Changes"
-                factoryClass="com.sprigbyte.canopy.ui.CanopyToolWindowFactory"/>
+            id="Canopy"
+            anchor="right"
+            icon="AllIcons.Toolwindows.Changes"
+            factoryClass="com.sprigbyte.canopy.ui.CanopyToolWindowFactory"/>
     </extensions>
     
     <!-- Actions -->
@@ -56,10 +56,10 @@
         <group id="CanopyActions" text="Canopy" popup="true">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <action
-                    id="Canopy.OpenToolWindow"
-                    class="com.sprigbyte.canopy.actions.OpenCanopyToolWindowAction"
-                    text="Open Canopy Tool Window"
-                    description="Open the Canopy tool window to manage JIRA tickets and Azure DevOps integration"/>
+                id="Canopy.OpenToolWindow"
+                class="com.sprigbyte.canopy.actions.OpenCanopyToolWindowAction"
+                text="Open Canopy Tool Window"
+                description="Open the Canopy tool window to manage JIRA tickets and Azure DevOps integration"/>
         </group>
     </actions>
 </idea-plugin>
