@@ -49,13 +49,13 @@ intellijPlatform {
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "23"
-        targetCompatibility = "23"
+        sourceCompatibility = "21"
+        targetCompatibility = "21"
     }
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_23)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
