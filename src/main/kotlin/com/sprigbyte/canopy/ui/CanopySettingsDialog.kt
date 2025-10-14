@@ -38,6 +38,9 @@ class CanopySettingsDialog(private val project: Project) : DialogWrapper(project
     // Git configuration
     private val targetBranchField = JBTextField().apply { text = config.state.defaultTargetBranch }
     private val branchPrefixField = JBTextField().apply { text = config.state.branchPrefix }
+
+    // OpenAI configuration
+    private val openAiKeyField = JBPasswordField().apply { text = config.state.openAiKey }
     
     // UI Settings
     private val refreshIntervalField = JBTextField().apply { text = config.state.autoRefreshIntervalMinutes.toString() }
@@ -89,6 +92,15 @@ class CanopySettingsDialog(private val project: Project) : DialogWrapper(project
             .addLabeledComponent("Branch Prefix:", branchPrefixField)
             .addTooltip("Prefix for created branches (e.g., 'feature/', 'bugfix/')")
             
+            .addVerticalGap(15)
+            .addComponent(JSeparator())
+            .addVerticalGap(10)
+
+            // OpenAI Configuration
+            .addComponent(createSectionLabel("OpenAI Configuration"))
+            .addLabeledComponent("OpenAI Key:", openAiKeyField)
+            .addTooltip("Your OpenAI key")
+
             .addVerticalGap(15)
             .addComponent(JSeparator())
             .addVerticalGap(10)
@@ -181,6 +193,10 @@ class CanopySettingsDialog(private val project: Project) : DialogWrapper(project
         config.updateGitConfiguration(
             targetBranchField.text.trim(),
             branchPrefixField.text.trim()
+        )
+        
+        config.updateOpenAiConfiguration(
+           String(openAiKeyField.password)
         )
         
         config.updateUISettings(

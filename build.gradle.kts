@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.sprigbyte"
-version = "1.0.2"
+version = "1.0.3"
 
 repositories {
     mavenCentral()
@@ -42,7 +42,8 @@ intellijPlatform {
         }
 
         changeNotes = """
-            Add plugin icon
+            Fix error when trying to create pull request.
+            Add AI optional diff summary to the pull request description.
         """.trimIndent()
     }
 }

@@ -7,8 +7,13 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.sprigbyte.canopy.model.ApiResult
+import com.sprigbyte.canopy.model.AtlassianDocumentFormatContent
+import com.sprigbyte.canopy.model.AtlassianDocumentFormatContentMark
+import com.sprigbyte.canopy.model.AtlassianDocumentFormatWrapper
 import com.sprigbyte.canopy.model.JiraSearchResponse
 import com.sprigbyte.canopy.model.JiraTicket
+import com.sprigbyte.canopy.model.JiraTransitionRequest
+import com.sprigbyte.canopy.model.JiraTransitionsResponse
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -105,6 +110,159 @@ class JiraService {
             return ApiResult.Error(error, e)
         } catch (e: Exception) {
             val error = "Unexpected error while searching tickets: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        }
+    }
+    
+    fun moveTicket(ticket: JiraTicket, column: String): ApiResult<Boolean> {
+        val config = CanopyConfigurationService.getInstance().state
+        val baseUrl = config.jiraBaseUrl.trimEnd('/')
+        val transitionsUrl = "$baseUrl/rest/api/3/issue/${ticket.key}/transitions"
+        val transitionsResponse: JiraTransitionsResponse
+
+        try {
+            val getRequest = Request.Builder()
+                .url(transitionsUrl)
+                .get()
+                .header("Authorization", createBasicAuthHeader(config.jiraUsername, config.jiraApiToken))
+                .header("Accept", "application/json")
+                .build()
+
+            client.newCall(getRequest).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val error = "Failed to get transitions: HTTP ${response.code} - ${response.message}"
+                    logger.warn(error)
+                    return ApiResult.Error(error)
+                }
+
+                val responseBody = response.body?.string() ?: ""
+                transitionsResponse = gson.fromJson(responseBody, JiraTransitionsResponse::class.java)
+
+                logger.info("Found ${transitionsResponse.transitions.size} transitions")
+            }
+        } catch (e: IOException) {
+            val error = "Network error while getting transitions: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        } catch (e: Exception) {
+            val error = "Unexpected error while getting transitions: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        }
+
+        try {
+            val id = transitionsResponse.transitions.find { transition -> transition.name == column }?.id ?: error("No transition with name $column was found")
+            val requestBody = mapOf(
+                "transition" to JiraTransitionRequest(id)
+            )
+
+            val request = Request.Builder()
+                .url(transitionsUrl)
+                .post(gson.toJson(requestBody).toRequestBody("application/json".toMediaType()))
+                .header("Authorization", createBasicAuthHeader(config.jiraUsername, config.jiraApiToken))
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build()
+
+            logger.info("Moving ${ticket.key} to $column")
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val error = "Failed to move ${ticket.key} to $column"
+                    logger.warn(error)
+                    return ApiResult.Error(error)
+                }
+
+                logger.info("Moved ${ticket.key} to $column")
+                return ApiResult.Success(true)
+            }
+        } catch (e: IOException) {
+            val error = "Network error while moving ticket: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        } catch (e: Exception) {
+            val error = "Unexpected error while moving ticket: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        }
+    }
+
+
+    fun addComment(ticket: JiraTicket, prUrl: String?): ApiResult<Boolean> {
+        if (prUrl == null) {
+            return ApiResult.Error("prUrl must not be null")
+        }
+        
+        val config = CanopyConfigurationService.getInstance().state
+
+        try {
+            val baseUrl = config.jiraBaseUrl.trimEnd('/')
+            val searchUrl = "$baseUrl/rest/api/3/issue/${ticket.key}/comment"
+
+            val requestBody = mapOf(
+                "body" to AtlassianDocumentFormatWrapper(
+                    listOf(
+                        AtlassianDocumentFormatContent(
+                            "paragraph",
+                            listOf(
+                                AtlassianDocumentFormatContent(
+                                    "text",
+                                    null,
+                                    "Pull request: ",
+                                    null
+                                ),
+                                AtlassianDocumentFormatContent(
+                                    "text",
+                                    null,
+                                    prUrl,
+                                    listOf(
+                                        AtlassianDocumentFormatContentMark(
+                                            "link",
+                                            mapOf(
+                                                "href" to prUrl
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+                            null,
+                            null
+                        )
+                    ),
+                    "doc",
+                    1
+                )
+            )
+
+            val json = gson.toJson(requestBody)
+
+            val request = Request.Builder()
+                .url(searchUrl)
+                .post(json.toRequestBody("application/json".toMediaType()))
+                .header("Authorization", createBasicAuthHeader(config.jiraUsername, config.jiraApiToken))
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .build()
+
+            logger.info("Adding comment to ticket ${ticket.key}")
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val error = "Failed to add comment: HTTP ${response.code} - ${response.message}"
+                    logger.warn(error)
+                    return ApiResult.Error(error)
+                }
+
+                logger.info("Added comment to ticket ${ticket.key}")
+                return ApiResult.Success(true)
+            }
+        } catch (e: IOException) {
+            val error = "Network error while Adding comment: ${e.message}"
+            logger.error(error, e)
+            return ApiResult.Error(error, e)
+        } catch (e: Exception) {
+            val error = "Unexpected error while Adding comment: ${e.message}"
             logger.error(error, e)
             return ApiResult.Error(error, e)
         }

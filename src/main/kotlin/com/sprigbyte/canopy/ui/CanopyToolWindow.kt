@@ -9,6 +9,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.*
@@ -75,12 +76,25 @@ class CanopyToolWindow(private val project: Project) {
         
         // Load tickets on startup if configured
         if (isConfigured()) {
-            refreshTickets()
+            doWhenIndexingFinished(project) {
+                refreshTickets()
+            }
         } else {
             statusLabel.text = "Please configure JIRA and Azure DevOps settings"
         }
         
         return mainPanel
+    }
+    
+    private fun doWhenIndexingFinished(project: Project, action: () -> Unit) {
+        val dumbService = DumbService.getInstance(project)
+        if (dumbService.isDumb) {
+            dumbService.runWhenSmart {
+                action()
+            }
+        } else {
+            action()
+        }
     }
     
     private fun setupTable() {
@@ -174,11 +188,10 @@ class CanopyToolWindow(private val project: Project) {
                                 if (hasBranch && branchName != null) {
                                     when (val prResult = azureService.pullRequestExistsForBranch(branchName)) {
                                         is ApiResult.Success -> {
-                                            val config = CanopyConfigurationService.getInstance().state
                                             val repoName = gitService.getGitRepository()?.project?.name
                                             if (repoName != null) {
                                                 hasPR = prResult.data != null
-                                                prUrl = "https://dev.azure.com/${config.azureOrganization}/${config.azureProject}/_git/${repoName}/pullrequest/${prResult.data?.pullRequestId}"
+                                                prUrl = buildPullRequestUrl(repoName, prResult.data?.pullRequestId)
                                             }
                                             
                                         }
@@ -319,6 +332,12 @@ class CanopyToolWindow(private val project: Project) {
         })
     }
     
+    private fun buildPullRequestUrl(repoName: String, pullRequestId: Int?): String? {
+        val config = CanopyConfigurationService.getInstance().state
+        if (pullRequestId == null) return null
+        return "https://dev.azure.com/${config.azureOrganization}/${config.azureProject}/_git/${repoName}/pullrequest/$pullRequestId"
+    }
+    
     private fun createPullRequestForTicket(ticket: JiraTicket) {
         val branchName = gitService.getBranchNameForTicket(ticket.key)
         
@@ -326,10 +345,37 @@ class CanopyToolWindow(private val project: Project) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.text = "Creating pull request for ${ticket.key}..."
                 
-                when (val result = azureService.createPullRequestFromTicket(ticket, branchName)) {
+                when (val prResult = azureService.createPullRequestFromTicket(ticket, branchName)) {
                     is ApiResult.Success -> {
+                        when (val jiraMoveResult = jiraService.moveTicket(ticket, "Ready for review")) {
+                            is ApiResult.Success -> { }
+                            is ApiResult.Error -> {
+                                ApplicationManager.getApplication().invokeLater {
+                                    Messages.showErrorDialog(
+                                        project,
+                                        "Failed to move ticket: ${jiraMoveResult.message}",
+                                        "Error"
+                                    )
+                                }
+                                return
+                            }
+                        }
+                        val repoName = gitService.getGitRepository()?.project?.name
+                        when (val jiraCommentResult = jiraService.addComment(ticket, buildPullRequestUrl(repoName!!, prResult.data.pullRequestId))) {
+                            is ApiResult.Success -> { }
+                            is ApiResult.Error -> {
+                                ApplicationManager.getApplication().invokeLater {
+                                    Messages.showErrorDialog(
+                                        project,
+                                        "Failed to add pull request url as comment to ticket: ${jiraCommentResult.message}",
+                                        "Error"
+                                    )
+                                }
+                                return
+                            }
+                        }
                         ApplicationManager.getApplication().invokeLater {
-                            Messages.showInfoMessage(project, "Successfully created pull request #${result.data.pullRequestId}", "Pull Request Created")
+                            Messages.showInfoMessage(project, "Successfully created pull request #${prResult.data.pullRequestId}", "Pull Request Created")
                             refreshTickets()
                         }
                     }
@@ -337,10 +383,11 @@ class CanopyToolWindow(private val project: Project) {
                         ApplicationManager.getApplication().invokeLater {
                             Messages.showErrorDialog(
                                 project,
-                                "Failed to create pull request: ${result.message}",
+                                "Failed to create pull request: ${prResult.message}",
                                 "Error"
                             )
                         }
+                        return
                     }
                 }
             }

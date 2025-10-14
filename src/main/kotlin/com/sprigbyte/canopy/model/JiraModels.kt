@@ -16,7 +16,7 @@ data class JiraFields(
     val status: JiraStatus,
     val assignee: JiraUser?,
     val reporter: JiraUser?,
-    val issueType: JiraIssueType,
+    val issuetype: JiraIssueType,
     val created: String,
     val updated: String
 )
@@ -48,6 +48,37 @@ data class JiraSearchResponse(
     val total: Int,
     val startAt: Int,
     val maxResults: Int
+)
+
+data class JiraTransition(
+    val id: String,
+    val name: String
+)
+
+data class JiraTransitionsResponse(
+    val transitions: List<JiraTransition>
+)
+
+data class JiraTransitionRequest(
+    val id: String
+)
+
+data class AtlassianDocumentFormatWrapper(
+    val content: List<AtlassianDocumentFormatContent>,
+    val type: String,
+    val version: Int
+)
+
+data class AtlassianDocumentFormatContent(
+    val type: String,
+    val content: List<AtlassianDocumentFormatContent>?,
+    val text: String?,
+    val marks: List<AtlassianDocumentFormatContentMark>?
+)
+
+data class AtlassianDocumentFormatContentMark(
+    val type: String,
+    val attrs: Map<String, String>
 )
 
 /**

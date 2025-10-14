@@ -13,6 +13,7 @@ import git4idea.commands.GitCommand
 import git4idea.commands.GitLineHandler
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
+import java.io.File
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -193,5 +194,20 @@ class GitService(private val project: Project) {
         } catch (e: Exception) {
             ApiResult.Error("Error during pull: ${e.message}", e)
         }
+    }
+
+    fun getGitDiff(): String {
+        val config = CanopyConfigurationService.getInstance().state
+        val branch = getCurrentBranch()
+        val main = config.defaultTargetBranch
+        val repo = getGitRepository() ?: error("Not a git repository")
+
+        val command = listOf("git", "diff", "$main...$branch")
+        val process = ProcessBuilder(command)
+            .directory(File(repo.root.path))
+            .redirectErrorStream(true)
+            .start()
+
+        return process.inputStream.bufferedReader().use { it.readText() }
     }
 }

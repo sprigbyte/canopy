@@ -33,6 +33,7 @@ class AzureDevOpsService(private val project: Project) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
     private val gitService = GitService.getInstance(project)
+    private val openAiService = OpenAiService.getInstance(project)
     
     companion object {
         fun getInstance(project: Project): AzureDevOpsService {
@@ -237,25 +238,21 @@ class AzureDevOpsService(private val project: Project) {
             appendLine("## ${ticket.key}: ${ticket.fields.summary}")
             appendLine()
             
-            appendLine("### Ticket Details")
-            appendLine("- **Type:** ${ticket.fields.issueType.name}")
-            appendLine("- **Status:** ${ticket.fields.status.name}")
-            ticket.fields.assignee?.let { assignee ->
-                appendLine("- **Assignee:** ${assignee.displayName}")
+            val summary = openAiService.summarizeDiff(gitService.getGitDiff())
+            summary?.let { aiSummary ->
+                appendLine("### AI Summary")
+                appendLine(aiSummary)
+                appendLine()
             }
-            ticket.fields.reporter?.let { reporter ->
-                appendLine("- **Reporter:** ${reporter.displayName}")
-            }
-            appendLine()
-            
+
             appendLine("### Links")
             val config = CanopyConfigurationService.getInstance().state
             val ticketUrl = "${config.jiraBaseUrl.trimEnd('/')}/browse/${ticket.key}"
-            appendLine("- [View in JIRA]($ticketUrl)")
+            appendLine("[View in JIRA]($ticketUrl)")
             appendLine()
             
             appendLine("---")
-            appendLine("*This pull request was created automatically by Canopy*")
+            appendLine("*This pull request was created automatically by [Canopy](https://plugins.jetbrains.com/plugin/28641-canopy)*")
         }
     }
     

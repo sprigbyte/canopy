@@ -31,6 +31,9 @@ class CanopyConfigurationService : PersistentStateComponent<CanopyConfigurationS
         var defaultTargetBranch: String = "main",
         var branchPrefix: String = "feature/",
         
+        // OpenAI Configuration
+        var openAiKey: String = "",
+        
         // UI Settings
         var autoRefreshIntervalMinutes: Int = 15,
         var showCompletedTickets: Boolean = false,
@@ -79,6 +82,10 @@ class CanopyConfigurationService : PersistentStateComponent<CanopyConfigurationS
     fun updateGitConfiguration(targetBranch: String, branchPrefix: String) {
         state.defaultTargetBranch = targetBranch.trim()
         state.branchPrefix = branchPrefix.trim()
+    }
+
+    fun updateOpenAiConfiguration(openAiKey: String) {
+        state.openAiKey = openAiKey.trim()
     }
     
     fun updateUISettings(refreshInterval: Int, showCompleted: Boolean, maxTickets: Int) {
